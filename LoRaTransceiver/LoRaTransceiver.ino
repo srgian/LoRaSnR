@@ -100,7 +100,7 @@ void onReceive(int packetSize) {
         dev.hop++;
       }
     }
-    
+
     int foundEmpty = 0;
     int foundID = 0;
     for (int i = 0; i < DEVICES; i++) {
@@ -108,11 +108,10 @@ void onReceive(int packetSize) {
         if (foundEmpty == 0) {
           foundEmpty = i;
         }
-      } 
-      
+      }
+
       if (devices[i].id == dev.id) {
-        if(devices[i].hop >= dev.hop)
-        {
+        if (devices[i].hop >= dev.hop) {
           foundID = i;
         } else {
           foundEmpty = 0;
@@ -124,11 +123,10 @@ void onReceive(int packetSize) {
 
     if (foundID != 0) {
       devices[foundID] = dev;
-    } else if (foundEmpty != 0)
-    {
+    } else if (foundEmpty != 0) {
       devices[foundEmpty] = dev;
     }
-    Serial.printf("Received: %s\n", dev.toString().c_str());
+    // Serial.printf("Received: %s\n", dev.toString().c_str());
   }
 }
 
@@ -137,9 +135,15 @@ void refreshDisplay() {
   if (u8g2) {
     char buf[256];
     u8g2->clearBuffer();
-    u8g2->drawStr(0, 12, "Transmitting: OK!");
-    snprintf(buf, sizeof(buf), "Sending: %d", counter);
-    u8g2->drawStr(0, 30, buf);
+    // u8g2->drawStr(0, 12, "Transmitting: OK!");
+    // snprintf(buf, sizeof(buf), "Sending: %d", counter);
+    // u8g2->drawStr(0, 30, buf);
+    snprintf(buf, sizeof(buf), "id ttl hop cnt rssi snr");
+    u8g2->drawStr(0, 12, buf);
+    for (int i = 0; i < DEVICES; i++) {
+      snprintf(buf, sizeof(buf), "%3u %2u %2u %5u %+4d %+4.1f", devices[i].id, devices[i].ttl, devices[i].hop, devices[i].counter, devices[i].rssi, devices[i].snr);
+      u8g2->drawStr(0, 24+i*12, buf);
+    }
     u8g2->sendBuffer();
   }
 #endif

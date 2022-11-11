@@ -150,8 +150,9 @@ void initBoard()
             u8g2->drawStr(58, 60, "LoRa");
         } while ( u8g2->nextPage() );
         u8g2->sendBuffer();
-        u8g2->setFont(u8g2_font_fur11_tf);
-        delay(3000);
+        //u8g2->setFont(u8g2_font_fur11_tf);
+        u8g2->setFont(u8g2_font_5x7_mr);
+        //delay(3000);
     }
 #endif
 
