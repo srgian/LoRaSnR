@@ -37,8 +37,8 @@ void setup() {
      */
   //mac = ESP.getEfuseMac();
   uint8_t baseMac[6];
-	// Get MAC address for WiFi station
-	esp_read_mac(baseMac, ESP_MAC_WIFI_STA);
+  // Get MAC address for WiFi station
+  esp_read_mac(baseMac, ESP_MAC_WIFI_STA);
   mac = baseMac[5];
   memset(devices, 0, sizeof(devices));
   Serial.printf("LoRa Transceiver %s (%u)\n", VERSION, mac);
@@ -64,13 +64,6 @@ void setup() {
 }
 
 void sendPacket() {
-  Serial.print("Sending packet: ");
-  Serial.println(counter);
-  String x = String("This is a test\n");
-  uint8_t buf[(MAX_BUF_SIZE / sizeof(device_t)) * sizeof(device_t)];
-  uint8_t buf_size = 0;
-  uint8_t* buf_p = buf;
-
   /* copy alive devices in output buffer
      * first in buffer should always be own device
      * always alive (ID != 0, TTL<=MAX_TTL)
@@ -80,28 +73,17 @@ void sendPacket() {
   for (int i = 0; i < DEVICES; i++) {
     device_t* p = &(devices[i]);
     if (p->id != NULL && p->hop <= MAX_HOP) {
-      memcpy(buf_p, p, sizeof(device_t));
-      buf_size += sizeof(device_t);
-      buf_p += sizeof(device_t);
+      Serial.printf("Sending: %s\n", p->toString().c_str());
+      LoRa.beginPacket();
+      LoRa.write((uint8_t*)p, sizeof(device_t));
+      LoRa.endPacket();
     }
   }
-
-  // send packet
-  int ret = 0;
-  ret = LoRa.beginPacket();
-  // Serial.printf("Lora.beginPacket returned %d\n", ret);
-  ret = LoRa.write(buf, buf_size);
-  // ret = LoRa.write((uint8_t*)(x.c_str()), x.length());
-  // Serial.printf("Lora.write returned %d\n", ret);
-  ret = LoRa.endPacket();
-  // Serial.printf("Lora.endPacket returned %d\n", ret);
 }
 
 void onReceive(int packetSize) {
-  Serial.print("Received packet '");
   if (packetSize) {
     // received a packet
-
     uint8_t buf[256];
     uint8_t buf_idx = 0;
     device_t dev;
@@ -110,21 +92,42 @@ void onReceive(int packetSize) {
     while (LoRa.available()) {
       recv = (char)LoRa.read();
       buf[buf_idx++] = recv;
-      Serial.printf("%02X", recv);
       if (buf_idx == sizeof(device_t)) {
         buf_idx = 0;
         memcpy((void*)(&dev), buf, sizeof(dev));
-        dev.rssi=LoRa.packetRssi();
-        dev.snr=LoRa.packetSnr();
+        dev.rssi = LoRa.packetRssi();
+        dev.snr = LoRa.packetSnr();
         dev.hop++;
       }
     }
+    
+    int foundEmpty = 0;
+    int foundID = 0;
+    for (int i = 0; i < DEVICES; i++) {
+      if (devices[i].id == NULL) {
+        if (foundEmpty == 0) {
+          foundEmpty = i;
+        }
+      } 
+      
+      if (devices[i].id == dev.id) {
+        if(devices[i].hop >= dev.hop)
+        {
+          foundID = i;
+        } else {
+          foundEmpty = 0;
+          foundID = 0;
+          break;
+        }
+      }
+    }
 
-    // print RSSI of packet
-    Serial.print("' with RSSI: ");
-    Serial.print(LoRa.packetRssi());
-    Serial.print(", SNR: ");
-    Serial.println(LoRa.packetSnr());
+    if (foundID != 0) {
+      devices[foundID] = dev;
+    } else if (foundEmpty != 0)
+    {
+      devices[foundEmpty] = dev;
+    }
     Serial.printf("Received: %s\n", dev.toString().c_str());
   }
 }
@@ -143,7 +146,7 @@ void refreshDisplay() {
 }
 
 void updateDevices() {
-  int x=0;
+  int x = 0;
   Serial.printf("Devices:\n");
   for (int i = 0; i < DEVICES; i++) {
     device_t* p = &(devices[i]);
