@@ -35,7 +35,11 @@ void setup() {
   /* TODO: better unique device is necessary to avoid ID=0 and colisions.
      * ID=0 means dead device
      */
-  mac = ESP.getEfuseMac();
+  //mac = ESP.getEfuseMac();
+  uint8_t baseMac[6];
+	// Get MAC address for WiFi station
+	esp_read_mac(baseMac, ESP_MAC_WIFI_STA);
+  mac = baseMac[5];
   memset(devices, 0, sizeof(devices));
   Serial.printf("LoRa Transceiver %s (%u)\n", VERSION, mac);
   Serial.printf("Size of devices = %d (%d * %d)\n", sizeof(devices), sizeof(device_t), DEVICES);
@@ -139,6 +143,8 @@ void refreshDisplay() {
 }
 
 void updateDevices() {
+  int x=0;
+  Serial.printf("Devices:\n");
   for (int i = 0; i < DEVICES; i++) {
     device_t* p = &(devices[i]);
     /* adjust self */
@@ -174,11 +180,13 @@ void updateDevices() {
     if (p->id == NULL) {
       continue;
     }
-    Serial.printf("%s\n", p->toString().c_str());
+    Serial.printf("    [%d]: %s\n", x, p->toString().c_str());
+    x++;
   }
 }
 
 void loop() {
+  Serial.println("");
   updateDevices();
   sendPacket();
   LoRa.receive();
